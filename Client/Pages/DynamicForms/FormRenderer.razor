@@ -13,7 +13,10 @@
 <p class="text-muted">@form?.Description</p>
 @if (!string.IsNullOrEmpty(deletedMessage))
 {
-    <div class="alert alert-warning">@deletedMessage</div>
+    var cls = deletedMessage.Contains("deleted", StringComparison.OrdinalIgnoreCase)
+        ? "alert alert-danger"
+        : "alert alert-warning";
+    <div class="@cls">@deletedMessage</div>
 }
 
 @if (!isLoaded)

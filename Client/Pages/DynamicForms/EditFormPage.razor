@@ -16,7 +16,10 @@
 <h2 class="mb-2">Form Builder</h2>
 @if (!string.IsNullOrEmpty(deletedMessage))
 {
-    <div class="alert alert-warning">@deletedMessage</div>
+    var cls = deletedMessage.Contains("deleted", StringComparison.OrdinalIgnoreCase)
+        ? "alert alert-danger"
+        : "alert alert-warning";
+    <div class="@cls">@deletedMessage</div>
 }
 <p class="text-muted">Drag fields to reorder or move them between rows. Each row can have up to four columns.</p>
 

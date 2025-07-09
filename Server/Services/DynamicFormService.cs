@@ -318,7 +318,7 @@ namespace DynamicFormsApp.Server.Services
         {
             var query = _db.Forms
                 .Include(f => f.Fields)
-                .Where(f => f.CreatedBy == user && f.IsActive);
+                .Where(f => f.CreatedBy == user);
 
             if (!includeDrafts)
             {
@@ -332,7 +332,7 @@ namespace DynamicFormsApp.Server.Services
         {
             return await _db.Forms
                 .Include(f => f.Fields)
-                .Where(f => f.CreatedBy == user && f.IsDraft && f.IsActive)
+                .Where(f => f.CreatedBy == user && f.IsDraft)
                 .ToListAsync();
         }
 

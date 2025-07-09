@@ -9,7 +9,10 @@
 <h3 class="mb-3">Form Versions</h3>
 @if (!string.IsNullOrEmpty(deletedMessage))
 {
-    <div class="alert alert-warning">@deletedMessage</div>
+    var cls = deletedMessage.Contains("deleted", StringComparison.OrdinalIgnoreCase)
+        ? "alert alert-danger"
+        : "alert alert-warning";
+    <div class="@cls">@deletedMessage</div>
 }
 
 @if (!isLoaded)
