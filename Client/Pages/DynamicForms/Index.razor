@@ -84,7 +84,7 @@
                                              OnDuplicate="async f => await DuplicateField(rowIndex, f)" />
                             </div>
                         }
-                        <div class="col-12">
+                        <div class="col-12 no-drop">
                             <button class="btn btn-sm btn-primary" @onclick="() => AddField(rowIndex)">+ Add Column</button>
                         </div>
                     </div>
@@ -391,6 +391,7 @@ else
     private async Task SaveDraftAndExit()
     {
         await SaveDraftAsync();
+        await JS.InvokeVoidAsync("alert", "Draft saved! You can return later to edit or publish it.");
         ignoreNavigationPrompt = true;
         Navigation.NavigateTo("/");
     }
