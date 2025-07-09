@@ -123,7 +123,9 @@ namespace DynamicFormsApp.Server.Controllers
         public async Task<ActionResult<Form>> Get(int id)
         {
             var form = await _svc.GetFormAsync(id);
-            if (!form.IsActive)
+            var requesterIsOwner = Request.Cookies.TryGetValue("userName", out var user) && user == form.CreatedBy;
+
+            if (!form.IsActive && !requesterIsOwner)
             {
                 var owner = await _userSvc.GetUserData(form.CreatedBy);
                 return StatusCode(410, new
@@ -133,7 +135,7 @@ namespace DynamicFormsApp.Server.Controllers
                     Email = owner?.Email
                 });
             }
-            if (!form.IsAvailable)
+            if (!form.IsAvailable && !requesterIsOwner)
             {
                 var owner = await _userSvc.GetUserData(form.CreatedBy);
                 return StatusCode(410, new
