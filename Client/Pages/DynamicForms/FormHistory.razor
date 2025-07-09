@@ -9,12 +9,19 @@
 <h3 class="mb-3">Form Versions</h3>
 @if (!string.IsNullOrEmpty(deletedMessage))
 {
-    <div class="alert alert-warning">@deletedMessage</div>
+    var cls = deletedMessage.Contains("deleted", StringComparison.OrdinalIgnoreCase)
+        ? "alert alert-danger"
+        : "alert alert-warning";
+    <div class="@cls">@deletedMessage</div>
 }
 
-@if (versions == null)
+@if (!isLoaded)
 {
     <p>Loading...</p>
+}
+else if (versions == null)
+{
+    <!-- nothing -->
 }
 else
 {
@@ -36,6 +43,7 @@ else
     [Parameter] public int FormId { get; set; }
     private List<Form>? versions;
     private string? deletedMessage;
+    private bool isLoaded;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -61,11 +69,13 @@ else
                 {
                     deletedMessage = "Form not found.";
                 }
+                isLoaded = true;
                 StateHasChanged();
                 return;
             }
 
             versions = await resp.Content.ReadFromJsonAsync<List<Form>>();
+            isLoaded = true;
             StateHasChanged();
         }
     }
