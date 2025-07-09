@@ -94,7 +94,7 @@ else
             {
                 responderName = respName?.ToString();
             }
-            exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/exportHelper.js");
+            exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/exportHelper.js");
             StateHasChanged();
         }
     }

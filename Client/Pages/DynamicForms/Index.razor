@@ -356,6 +356,7 @@ else
         {
             var wrapper = await resp.Content.ReadFromJsonAsync<JsonElement>();
             int newId = wrapper.GetProperty("formId").GetInt32();
+            ignoreNavigationPrompt = true;
             Navigation.NavigateTo($"/forms/{newId}");
         }
     }

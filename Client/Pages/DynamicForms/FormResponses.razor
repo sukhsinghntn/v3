@@ -119,7 +119,7 @@
                     .ToArray();
             }
 
-            exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/exportHelper.js");
+            exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/exportHelper.js");
             StateHasChanged();
         }
     }
