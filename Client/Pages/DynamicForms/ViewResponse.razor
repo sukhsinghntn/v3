@@ -19,6 +19,12 @@
    
 </div>
 <p class="text-muted">@form?.Description</p>
+<div class="mb-3" role="group">
+    <button class="btn btn-outline-info me-2" @onclick="PrintResponse">Print</button>
+    <button class="btn btn-outline-info me-2" @onclick="DownloadPdf">Download PDF</button>
+    <button class="btn btn-outline-info me-2" @onclick="DownloadCsv">Download CSV</button>
+    <button class="btn btn-outline-info" @onclick="DownloadExcel">Download Excel</button>
+</div>
 
 @if (form == null || response == null)
 {
@@ -172,6 +178,54 @@ else
             return val;
         }
         return val;
+    }
+
+    private async Task DownloadCsv()
+    {
+        if (exportModule is not null)
+        {
+            await exportModule.InvokeVoidAsync("downloadTableCsv", "exportTable", $"{form?.Name ?? "response"}.csv");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("downloadTableCsv", "exportTable", $"{form?.Name ?? "response"}.csv");
+        }
+    }
+
+    private async Task DownloadPdf()
+    {
+        if (exportModule is not null)
+        {
+            await exportModule.InvokeVoidAsync("exportTableToPdf", "printArea", $"{form?.Name ?? "response"}.pdf");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("exportTableToPdf", "printArea", $"{form?.Name ?? "response"}.pdf");
+        }
+    }
+
+    private async Task DownloadExcel()
+    {
+        if (exportModule is not null)
+        {
+            await exportModule.InvokeVoidAsync("exportTableToExcel", "exportTable", $"{form?.Name ?? "response"}.xlsx");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("exportTableToExcel", "exportTable", $"{form?.Name ?? "response"}.xlsx");
+        }
+    }
+
+    private async Task PrintResponse()
+    {
+        if (exportModule is not null)
+        {
+            await exportModule.InvokeVoidAsync("printElement", "printArea");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("printElement", "printArea");
+        }
     }
 
 
