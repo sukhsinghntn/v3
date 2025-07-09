@@ -84,7 +84,7 @@
                                              OnDuplicate="async f => await DuplicateField(rowIndex, f)" />
                             </div>
                         }
-                        <div class="col-12">
+                        <div class="col-12 no-drop">
                             <button class="btn btn-sm btn-primary" @onclick="() => AddField(rowIndex)">+ Add Column</button>
                         </div>
                     </div>
@@ -93,8 +93,11 @@
                 <div class="d-grid mb-3">
                     <button class="btn btn-primary" @onclick="AddRow">+ Add Row</button>
                 </div>
-                <div class="d-grid">
+                <div class="d-grid mb-2">
                     <button class="btn btn-primary btn-lg" @onclick="HandleSubmit">Create Form</button>
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-secondary" @onclick="SaveDraftAndExit">Save as Draft</button>
                 </div>
             </div>
         </div>
@@ -353,6 +356,7 @@ else
         {
             var wrapper = await resp.Content.ReadFromJsonAsync<JsonElement>();
             int newId = wrapper.GetProperty("formId").GetInt32();
+            ignoreNavigationPrompt = true;
             Navigation.NavigateTo($"/forms/{newId}");
         }
     }
@@ -383,6 +387,14 @@ else
         };
 
         await Http.PostAsJsonAsync("api/forms", payload);
+    }
+
+    private async Task SaveDraftAndExit()
+    {
+        await SaveDraftAsync();
+        await DialogService.Alert("Draft saved! You can return later to edit or publish it.", "Draft Saved");
+        ignoreNavigationPrompt = true;
+        Navigation.NavigateTo("/");
     }
 
     private async Task PromptDraft(LocationChangingContext context)
