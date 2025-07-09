@@ -1,4 +1,4 @@
-﻿@page "/forms/{FormId:int}/responses"
+@page "/forms/{FormId:int}/responses"
 @using System.Net.Http.Json
 @using DynamicFormsApp.Shared.Models
 @using Microsoft.AspNetCore.Components
@@ -9,6 +9,15 @@
 @implements IAsyncDisposable
 
 <div class="container mt-4">
+    @if (deletedInfo != null)
+    {
+        <div class="alert alert-danger">
+            @deletedInfo.Message<br />
+            Owner: @deletedInfo.OwnerName (@deletedInfo.OwnerEmail)
+        </div>
+    }
+    else
+    {
     <h2 class="mb-4">📄 Responses: <span class="text-primary">@form?.Name</span></h2>
     <p class="text-muted">@form?.Description</p>
 
@@ -89,6 +98,7 @@
 
     private Form form;
     private List<Dictionary<string, object>> responses;
+    private DeletedFormInfo? deletedInfo;
     private string[] columns = Array.Empty<string>();
     private IJSObjectReference? exportModule;
 
@@ -105,7 +115,16 @@
             }
 
 
-            form = await Http.GetFromJsonAsync<Form>($"api/forms/{FormId}");
+            var resp = await Http.GetAsync($"api/forms/{FormId}");
+            if (resp.StatusCode == System.Net.HttpStatusCode.Gone)
+            {
+                deletedInfo = await resp.Content.ReadFromJsonAsync<DeletedFormInfo>();
+                StateHasChanged();
+                return;
+            }
+            resp.EnsureSuccessStatusCode();
+            form = await resp.Content.ReadFromJsonAsync<Form>();
+
             responses = await Http.GetFromJsonAsync<List<Dictionary<string, object>>>($"api/forms/{FormId}/responses");
 
             var fieldKeys = form.Fields.Select(f => f.Key);
@@ -119,7 +138,7 @@
                     .ToArray();
             }
 
-            exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/exportHelper.js");
+            exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/exportHelper.js");
             StateHasChanged();
         }
     }

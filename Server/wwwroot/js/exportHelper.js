@@ -72,6 +72,26 @@ export async function exportTableToDocx(elementId, filename) {
 };
 window.exportTableToDocx = exportTableToDocx;
 
+export function exportTableToExcel(tableId, filename) {
+    const table = document.getElementById(tableId);
+    if (!table) return;
+    if (!window.XLSX) {
+        alert('Excel export is unavailable.');
+        return;
+    }
+    const wb = XLSX.utils.table_to_book(table, { sheet: 'Sheet1' });
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(link.href);
+};
+window.exportTableToExcel = exportTableToExcel;
+
 export function printElement(elementId) {
     const el = document.getElementById(elementId);
     if (!el) return;

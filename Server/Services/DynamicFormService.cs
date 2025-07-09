@@ -57,15 +57,29 @@ namespace DynamicFormsApp.Server.Services
 
             if (deletions.Count > 0)
             {
-                // Deleting fields requires a new version with a fresh table
-                existing.IsActive = false;
-                await _db.SaveChangesAsync();
+                if (!existing.IsDraft)
+                {
+                    // Deleting fields requires a new version with a fresh table
+                    existing.IsActive = false;
+                    await _db.SaveChangesAsync();
 
-                var newId = await CreateFormAsync(dto.Name, dto.Description, dto.Fields, user,
-                    dto.RequireLogin, dto.NotifyOnResponse, dto.NotificationEmail, dto.IsActive,
-                    dto.IsDraft, existing.Version + 1, existing.Id);
+                    var newId = await CreateFormAsync(dto.Name, dto.Description, dto.Fields, user,
+                        dto.RequireLogin, dto.NotifyOnResponse, dto.NotificationEmail, dto.IsActive,
+                        dto.IsDraft, existing.Version + 1, existing.Id);
 
-                return newId;
+                    return newId;
+                }
+                else
+                {
+                    var rawName = SanitizeKey(existing.Name);
+                    var tableName = $"Form_{existing.Id}_{rawName}";
+                    foreach (var del in deletions)
+                    {
+                        var sql = $"ALTER TABLE [{tableName}] DROP COLUMN [{del.Key}];";
+                        await _db.Database.ExecuteSqlRawAsync(sql);
+                        _db.FormFields.Remove(del);
+                    }
+                }
             }
 
             // Update in place when no fields are removed
@@ -189,6 +203,10 @@ namespace DynamicFormsApp.Server.Services
         {
             var form = await _db.Forms.FindAsync(formId)
                        ?? throw new InvalidOperationException("Form not found");
+            if (!form.IsActive)
+            {
+                throw new InvalidOperationException("Form inactive");
+            }
             var rawName = SanitizeKey(form.Name);
             var tableName = $"Form_{formId}_{rawName}";
 
@@ -256,6 +274,18 @@ namespace DynamicFormsApp.Server.Services
             await _db.SaveChangesAsync();
         }
 
+        public async Task SetFormActiveAsync(int formId, string user, bool active)
+        {
+            var form = await _db.Forms.FirstOrDefaultAsync(f => f.Id == formId && f.CreatedBy == user);
+            if (form == null)
+            {
+                throw new InvalidOperationException("Form not found");
+            }
+
+            form.IsActive = active;
+            await _db.SaveChangesAsync();
+        }
+
         public async Task<List<Form>> GetAllFormsAsync()
         {
             return await _db.Forms
@@ -287,7 +317,7 @@ namespace DynamicFormsApp.Server.Services
         {
             var query = _db.Forms
                 .Include(f => f.Fields)
-                .Where(f => f.CreatedBy == user && f.IsActive);
+                .Where(f => f.CreatedBy == user && f.PreviousVersionId == null);
 
             if (!includeDrafts)
             {
@@ -360,13 +390,13 @@ namespace DynamicFormsApp.Server.Services
             var formIds = await _db.FormShares.Where(s => s.UserName == user).Select(s => s.FormId).ToListAsync();
             return await _db.Forms
                 .Include(f => f.Fields)
-                .Where(f => formIds.Contains(f.Id))
+                .Where(f => formIds.Contains(f.Id) && f.IsActive)
                 .ToListAsync();
         }
 
         private async Task<bool> HasResponseAccessAsync(int formId, string user)
         {
-            var form = await _db.Forms.FirstOrDefaultAsync(f => f.Id == formId);
+            var form = await _db.Forms.FirstOrDefaultAsync(f => f.Id == formId && f.IsActive);
             if (form == null) return false;
             if (form.CreatedBy == user) return true;
             return await _db.FormShares.AnyAsync(s => s.FormId == formId && s.UserName == user);
@@ -408,6 +438,10 @@ namespace DynamicFormsApp.Server.Services
 
             var form = await _db.Forms.FindAsync(formId)
                        ?? throw new InvalidOperationException("Form not found");
+            if (!form.IsActive)
+            {
+                throw new InvalidOperationException("Form inactive");
+            }
             var rawName = SanitizeKey(form.Name);
             var tableName = $"Form_{formId}_{rawName}";
 

@@ -58,6 +58,17 @@ namespace DynamicFormsApp.Server.Controllers
                 return Unauthorized();
             }
 
+            var form = await _svc.GetFormAsync(id);
+            if (!form.IsActive)
+            {
+                var owner = await _userSvc.GetUserData(form.CreatedBy);
+                return StatusCode(410, new DeletedFormInfo
+                {
+                    CreatedBy = form.CreatedBy,
+                    OwnerEmail = owner?.Email,
+                    OwnerName = owner?.DisplayName
+                });
+            }
             var rows = await _svc.GetResponsesAsync(id, user);
             return Ok(rows);
         }
@@ -70,6 +81,17 @@ namespace DynamicFormsApp.Server.Controllers
                 return Unauthorized();
             }
 
+            var form = await _svc.GetFormAsync(id);
+            if (!form.IsActive)
+            {
+                var owner = await _userSvc.GetUserData(form.CreatedBy);
+                return StatusCode(410, new DeletedFormInfo
+                {
+                    CreatedBy = form.CreatedBy,
+                    OwnerEmail = owner?.Email,
+                    OwnerName = owner?.DisplayName
+                });
+            }
             var row = await _svc.GetResponseAsync(id, responseId, user);
             return Ok(row);
         }
@@ -80,6 +102,16 @@ namespace DynamicFormsApp.Server.Controllers
         public async Task<ActionResult<Form>> Get(int id)
         {
             var form = await _svc.GetFormAsync(id);
+            if (!form.IsActive)
+            {
+                var owner = await _userSvc.GetUserData(form.CreatedBy);
+                return StatusCode(410, new DeletedFormInfo
+                {
+                    CreatedBy = form.CreatedBy,
+                    OwnerEmail = owner?.Email,
+                    OwnerName = owner?.DisplayName
+                });
+            }
             return Ok(form);
         }
 
@@ -161,6 +193,18 @@ namespace DynamicFormsApp.Server.Controllers
             return NoContent();
         }
 
+        [HttpPut("{id}/active")]
+        public async Task<IActionResult> SetActive(int id, [FromBody] bool active)
+        {
+            if (!Request.Cookies.TryGetValue("userName", out var user) || string.IsNullOrEmpty(user))
+            {
+                return Unauthorized();
+            }
+
+            await _svc.SetFormActiveAsync(id, user, active);
+            return NoContent();
+        }
+
         [HttpPost("{id}/share")]
         public async Task<IActionResult> Share(int id, [FromBody] ShareFormDto dto)
         {
@@ -206,6 +250,16 @@ namespace DynamicFormsApp.Server.Controllers
             {
                 string? responder = null;
                 var form = await _svc.GetFormAsync(id);
+                if (!form.IsActive)
+                {
+                    var owner = await _userSvc.GetUserData(form.CreatedBy);
+                    return StatusCode(410, new DeletedFormInfo
+                    {
+                        CreatedBy = form.CreatedBy,
+                        OwnerEmail = owner?.Email,
+                        OwnerName = owner?.DisplayName
+                    });
+                }
                 if (form.RequireLogin && Request.Cookies.TryGetValue("userName", out var userId) && !string.IsNullOrEmpty(userId))
                 {
                     var userData = await _userSvc.GetUserData(userId);
