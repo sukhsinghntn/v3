@@ -193,16 +193,21 @@ namespace DynamicFormsApp.Server.Services
 
         public async Task<Form> GetFormAsync(int formId)
         {
-            return await _db.Forms
+            var form = await _db.Forms
                 .Include(f => f.Fields)
                 .FirstOrDefaultAsync(f => f.Id == formId)
                 ?? throw new InvalidOperationException("Form not found");
+            return form;
         }
 
         public async Task<Form> StoreResponseAsync(int formId, Dictionary<string, object> values, string? responderName = null)
         {
             var form = await _db.Forms.FindAsync(formId)
                        ?? throw new InvalidOperationException("Form not found");
+            if (!form.IsActive)
+            {
+                throw new InvalidOperationException("Form inactive");
+            }
             var rawName = SanitizeKey(form.Name);
             var tableName = $"Form_{formId}_{rawName}";
 
@@ -374,7 +379,7 @@ namespace DynamicFormsApp.Server.Services
             var formIds = await _db.FormShares.Where(s => s.UserName == user).Select(s => s.FormId).ToListAsync();
             return await _db.Forms
                 .Include(f => f.Fields)
-                .Where(f => formIds.Contains(f.Id))
+                .Where(f => formIds.Contains(f.Id) && f.IsActive)
                 .ToListAsync();
         }
 
@@ -422,6 +427,10 @@ namespace DynamicFormsApp.Server.Services
 
             var form = await _db.Forms.FindAsync(formId)
                        ?? throw new InvalidOperationException("Form not found");
+            if (!form.IsActive)
+            {
+                throw new InvalidOperationException("Form inactive");
+            }
             var rawName = SanitizeKey(form.Name);
             var tableName = $"Form_{formId}_{rawName}";
 
@@ -459,6 +468,10 @@ namespace DynamicFormsApp.Server.Services
 
             var form = await _db.Forms.FindAsync(formId)
                        ?? throw new InvalidOperationException("Form not found");
+            if (!form.IsActive)
+            {
+                throw new InvalidOperationException("Form inactive");
+            }
             var rawName = SanitizeKey(form.Name);
             var tableName = $"Form_{formId}_{rawName}";
 
