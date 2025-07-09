@@ -31,9 +31,13 @@
     <button class="btn btn-outline-info" @onclick="DownloadExcel">Download Excel</button>
 </div>
 
-@if (form == null || response == null)
+@if (!isLoaded)
 {
     <p>Loading...</p>
+}
+else if (form == null || response == null)
+{
+    <!-- nothing -->
 }
 else
 {
@@ -80,6 +84,7 @@ else
     private string? responderName;
     private IJSObjectReference? exportModule;
     private string? deletedMessage;
+    private bool isLoaded;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -106,6 +111,7 @@ else
                 {
                     deletedMessage = "Form not found.";
                 }
+                isLoaded = true;
                 StateHasChanged();
                 return;
             }
@@ -116,6 +122,7 @@ else
             if (!resp.IsSuccessStatusCode)
             {
                 deletedMessage = "Response not found.";
+                isLoaded = true;
                 StateHasChanged();
                 return;
             }
@@ -125,6 +132,7 @@ else
                 responderName = respName?.ToString();
             }
             exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/exportHelper.js");
+            isLoaded = true;
             StateHasChanged();
         }
     }

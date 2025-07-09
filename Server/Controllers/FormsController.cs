@@ -63,7 +63,7 @@ namespace DynamicFormsApp.Server.Controllers
                 var owner = await _userSvc.GetUserData(form.CreatedBy);
                 return StatusCode(410, new
                 {
-                    Message = "This form has been deleted. Please contact the owner.",
+                    Message = "This form is no longer available. Please contact the owner.",
                     Owner = owner?.DisplayName ?? form.CreatedBy,
                     Email = owner?.Email
                 });
@@ -87,7 +87,7 @@ namespace DynamicFormsApp.Server.Controllers
                 var owner = await _userSvc.GetUserData(form.CreatedBy);
                 return StatusCode(410, new
                 {
-                    Message = "This form has been deleted. Please contact the owner.",
+                    Message = "This form is no longer available. Please contact the owner.",
                     Owner = owner?.DisplayName ?? form.CreatedBy,
                     Email = owner?.Email
                 });
@@ -108,7 +108,7 @@ namespace DynamicFormsApp.Server.Controllers
                 var owner = await _userSvc.GetUserData(form.CreatedBy);
                 return StatusCode(410, new
                 {
-                    Message = "This form has been deleted. Please contact the owner.",
+                    Message = "This form is no longer available. Please contact the owner.",
                     Owner = owner?.DisplayName ?? form.CreatedBy,
                     Email = owner?.Email
                 });
@@ -125,7 +125,7 @@ namespace DynamicFormsApp.Server.Controllers
                 var owner = await _userSvc.GetUserData(current.CreatedBy);
                 return StatusCode(410, new
                 {
-                    Message = "This form has been deleted. Please contact the owner.",
+                    Message = "This form is no longer available. Please contact the owner.",
                     Owner = owner?.DisplayName ?? current.CreatedBy,
                     Email = owner?.Email
                 });
@@ -205,6 +205,18 @@ namespace DynamicFormsApp.Server.Controllers
             return NoContent();
         }
 
+        [HttpPut("{id}/active")]
+        public async Task<IActionResult> SetActive(int id, [FromBody] bool active)
+        {
+            if (!Request.Cookies.TryGetValue("userName", out var user) || string.IsNullOrEmpty(user))
+            {
+                return Unauthorized();
+            }
+
+            await _svc.SetActiveStateAsync(id, user, active);
+            return NoContent();
+        }
+
         [HttpPost("{id}/share")]
         public async Task<IActionResult> Share(int id, [FromBody] ShareFormDto dto)
         {
@@ -255,7 +267,7 @@ namespace DynamicFormsApp.Server.Controllers
                     var owner = await _userSvc.GetUserData(form.CreatedBy);
                     return StatusCode(410, new
                     {
-                        Message = "This form has been deleted. Please contact the owner.",
+                        Message = "This form is no longer available. Please contact the owner.",
                         Owner = owner?.DisplayName ?? form.CreatedBy,
                         Email = owner?.Email
                     });

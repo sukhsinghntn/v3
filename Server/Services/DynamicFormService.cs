@@ -275,6 +275,18 @@ namespace DynamicFormsApp.Server.Services
             await _db.SaveChangesAsync();
         }
 
+        public async Task SetActiveStateAsync(int formId, string user, bool isActive)
+        {
+            var form = await _db.Forms.FirstOrDefaultAsync(f => f.Id == formId && f.CreatedBy == user);
+            if (form == null)
+            {
+                throw new InvalidOperationException("Form not found");
+            }
+
+            form.IsActive = isActive;
+            await _db.SaveChangesAsync();
+        }
+
         public async Task<List<Form>> GetAllFormsAsync()
         {
             return await _db.Forms
