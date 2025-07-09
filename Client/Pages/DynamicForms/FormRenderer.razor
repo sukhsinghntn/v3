@@ -4,12 +4,17 @@
 @using System.Text.Json
 @using System.Linq
 @using DynamicFormsApp.Shared.Models
+@using System.Net
 @inject HttpClient Http
 @inject NavigationManager Navigation
 @inject CookieHelper CookieHelper
 
 <h3>@(form?.Name ?? "Loading…")</h3>
 <p class="text-muted">@form?.Description</p>
+@if (!string.IsNullOrEmpty(deletedMessage))
+{
+    <div class="alert alert-warning">@deletedMessage</div>
+}
 
 @if (form == null)
 {
@@ -169,12 +174,29 @@ else
 
     private Form form;
     private Dictionary<string, object> responseData = new();
+    private string? deletedMessage;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
-            form = await Http.GetFromJsonAsync<Form>($"api/forms/{FormId}");
+            var resp = await Http.GetAsync($"api/forms/{FormId}");
+            if (!resp.IsSuccessStatusCode)
+            {
+                if (resp.StatusCode == HttpStatusCode.Gone)
+                {
+                    var info = await resp.Content.ReadFromJsonAsync<DeletedFormInfo>();
+                    deletedMessage = $"{info?.Message} Contact {info?.Owner} ({info?.Email}).";
+                }
+                else
+                {
+                    deletedMessage = "Form not found.";
+                }
+                StateHasChanged();
+                return;
+            }
+
+            form = await resp.Content.ReadFromJsonAsync<Form>();
 
             var user = await CookieHelper.LoginStatus();
             if (form.RequireLogin && string.IsNullOrEmpty(user))

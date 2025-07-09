@@ -9,6 +9,13 @@ window.initSortable = (selector, dotnetHelper) => {
             group: 'rows',
             animation: 150,
             handle: '.drag-handle',
+            draggable: '[data-id]',
+            filter: '.no-drop, .no-drop *',
+            onMove: function (evt) {
+                if (evt.related && (evt.related.classList.contains('no-drop') || evt.related.closest('.no-drop'))) {
+                    return false;
+                }
+            },
             onEnd: function (evt) {
                 const fromRow = evt.from.getAttribute('data-row');
                 const toRow = evt.to.getAttribute('data-row');
