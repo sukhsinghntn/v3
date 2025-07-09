@@ -35,7 +35,7 @@ else
                     <tr>
                         <td>@f.Name</td>
                         <td>@f.Description</td>
-                        <td><input type="checkbox" checked="@f.IsActive" @onchange="e => ToggleActive(f, e)" /></td>
+                        <td><input type="checkbox" checked="@f.IsEnabled" @onchange="e => ToggleActive(f, e)" /></td>
                         <td>
                             <a class="btn btn-sm btn-primary me-2" href="@($"/forms/{f.Id}")">Open</a>
                             <a class="btn btn-sm btn-secondary me-2" href="@($"/forms/{f.Id}/edit")">Edit</a>
@@ -108,8 +108,8 @@ else
     private async Task ToggleActive(Form form, ChangeEventArgs e)
     {
         bool newValue = e?.Value is bool b && b;
-        await Http.PutAsJsonAsync($"api/forms/{form.Id}/active", newValue);
-        form.IsActive = newValue;
+        await Http.PutAsJsonAsync($"api/forms/{form.Id}/enabled", newValue);
+        form.IsEnabled = newValue;
         StateHasChanged();
     }
 

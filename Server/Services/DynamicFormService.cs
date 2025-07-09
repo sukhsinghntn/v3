@@ -65,7 +65,7 @@ namespace DynamicFormsApp.Server.Services
 
                     var newId = await CreateFormAsync(dto.Name, dto.Description, dto.Fields, user,
                         dto.RequireLogin, dto.NotifyOnResponse, dto.NotificationEmail, dto.IsActive,
-                        dto.IsDraft, existing.Version + 1, existing.Id);
+                        dto.IsEnabled, dto.IsDraft, existing.Version + 1, existing.Id);
 
                     return newId;
                 }
@@ -89,6 +89,7 @@ namespace DynamicFormsApp.Server.Services
             existing.NotifyOnResponse = dto.NotifyOnResponse;
             existing.NotificationEmail = dto.NotificationEmail;
             existing.IsActive = dto.IsActive;
+            existing.IsEnabled = dto.IsEnabled;
             existing.IsDraft = dto.IsDraft;
 
             var keySet = new HashSet<string>(existing.Fields.Select(f => f.Key), StringComparer.OrdinalIgnoreCase);
@@ -136,7 +137,7 @@ namespace DynamicFormsApp.Server.Services
         }
 
 
-        public async Task<int> CreateFormAsync(string formName, string? description, List<CreateFieldDto> fields, string createdBy, bool requireLogin, bool notifyOnResponse, string? notificationEmail, bool isActive, bool isDraft = false, int version = 1, int? previousVersionId = null)
+        public async Task<int> CreateFormAsync(string formName, string? description, List<CreateFieldDto> fields, string createdBy, bool requireLogin, bool notifyOnResponse, string? notificationEmail, bool isActive, bool isEnabled, bool isDraft = false, int version = 1, int? previousVersionId = null)
         {
             var form = new Form
             {
@@ -147,6 +148,7 @@ namespace DynamicFormsApp.Server.Services
                 NotifyOnResponse = notifyOnResponse,
                 NotificationEmail = notificationEmail,
                 IsActive = isActive,
+                IsEnabled = isEnabled,
                 IsDraft = isDraft,
                 Version = version,
                 PreviousVersionId = previousVersionId,
@@ -204,7 +206,7 @@ namespace DynamicFormsApp.Server.Services
         {
             var form = await _db.Forms.FindAsync(formId)
                        ?? throw new InvalidOperationException("Form not found");
-            if (!form.IsActive)
+            if (!form.IsActive || !form.IsEnabled)
             {
                 throw new InvalidOperationException("Form inactive");
             }
@@ -275,7 +277,7 @@ namespace DynamicFormsApp.Server.Services
             await _db.SaveChangesAsync();
         }
 
-        public async Task SetActiveStateAsync(int formId, string user, bool isActive)
+        public async Task SetEnabledStateAsync(int formId, string user, bool isEnabled)
         {
             var form = await _db.Forms.FirstOrDefaultAsync(f => f.Id == formId && f.CreatedBy == user);
             if (form == null)
@@ -283,7 +285,7 @@ namespace DynamicFormsApp.Server.Services
                 throw new InvalidOperationException("Form not found");
             }
 
-            form.IsActive = isActive;
+            form.IsEnabled = isEnabled;
             await _db.SaveChangesAsync();
         }
 
@@ -291,20 +293,20 @@ namespace DynamicFormsApp.Server.Services
         {
             return await _db.Forms
                 .Include(f => f.Fields)
-                .Where(f => f.IsActive && !f.IsDraft)
+                .Where(f => f.IsActive && f.IsEnabled && !f.IsDraft)
                 .ToListAsync();
         }
 
         public async Task<int> GetFormCountAsync()
         {
-            return await _db.Forms.CountAsync(f => f.IsActive && !f.IsDraft);
+            return await _db.Forms.CountAsync(f => f.IsActive && f.IsEnabled && !f.IsDraft);
         }
 
         public async Task<List<Form>> SearchFormsAsync(bool includePrivate)
         {
             var query = _db.Forms
                 .Include(f => f.Fields)
-                .Where(f => f.IsActive && !f.IsDraft);
+                .Where(f => f.IsActive && f.IsEnabled && !f.IsDraft);
 
             if (!includePrivate)
             {
@@ -391,7 +393,7 @@ namespace DynamicFormsApp.Server.Services
             var formIds = await _db.FormShares.Where(s => s.UserName == user).Select(s => s.FormId).ToListAsync();
             return await _db.Forms
                 .Include(f => f.Fields)
-                .Where(f => formIds.Contains(f.Id) && f.IsActive)
+                .Where(f => formIds.Contains(f.Id) && f.IsActive && f.IsEnabled)
                 .ToListAsync();
         }
 
@@ -439,7 +441,7 @@ namespace DynamicFormsApp.Server.Services
 
             var form = await _db.Forms.FindAsync(formId)
                        ?? throw new InvalidOperationException("Form not found");
-            if (!form.IsActive)
+            if (!form.IsActive || !form.IsEnabled)
             {
                 throw new InvalidOperationException("Form inactive");
             }
@@ -480,7 +482,7 @@ namespace DynamicFormsApp.Server.Services
 
             var form = await _db.Forms.FindAsync(formId)
                        ?? throw new InvalidOperationException("Form not found");
-            if (!form.IsActive)
+            if (!form.IsActive || !form.IsEnabled)
             {
                 throw new InvalidOperationException("Form inactive");
             }
