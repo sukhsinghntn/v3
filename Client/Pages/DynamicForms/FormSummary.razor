@@ -6,6 +6,15 @@
 @inject NavigationManager Navigation
 @inject CookieHelper CookieHelper
 
+@if (deletedInfo != null)
+{
+    <div class="alert alert-danger">
+        @deletedInfo.Message<br />
+        Owner: @deletedInfo.OwnerName (@deletedInfo.OwnerEmail)
+    </div>
+}
+else
+{
 <h3>Summary for @form?.Name</h3>
 <p class="text-muted">@form?.Description</p>
 
@@ -70,6 +79,7 @@ else
 
     private Form form;
     private List<Dictionary<string, object>> responses;
+    private DeletedFormInfo? deletedInfo;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -83,7 +93,15 @@ else
                 return;
             }
 
-            form = await Http.GetFromJsonAsync<Form>($"api/forms/{FormId}");
+            var resp = await Http.GetAsync($"api/forms/{FormId}");
+            if (resp.StatusCode == System.Net.HttpStatusCode.Gone)
+            {
+                deletedInfo = await resp.Content.ReadFromJsonAsync<DeletedFormInfo>();
+                StateHasChanged();
+                return;
+            }
+            resp.EnsureSuccessStatusCode();
+            form = await resp.Content.ReadFromJsonAsync<Form>();
             responses = await Http.GetFromJsonAsync<List<Dictionary<string, object>>>($"api/forms/{FormId}/responses");
 
             StateHasChanged();

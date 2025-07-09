@@ -8,6 +8,15 @@
 @inject IJSRuntime JS
 @implements IAsyncDisposable
 
+@if (deletedInfo != null)
+{
+    <div class="alert alert-danger">
+        @deletedInfo.Message<br />
+        Owner: @deletedInfo.OwnerName (@deletedInfo.OwnerEmail)
+    </div>
+}
+else
+{
 <div class="d-flex justify-content-between align-items-center mb-2">
     <div>
         <h3 class="mb-0">Response for @form?.Name</h3>
@@ -16,9 +25,15 @@
             <span class="text-muted">Submitted by @responderName</span>
         }
     </div>
-   
+
 </div>
 <p class="text-muted">@form?.Description</p>
+<div class="mb-3" role="group">
+    <button class="btn btn-outline-info me-2" @onclick="PrintResponse">Print</button>
+    <button class="btn btn-outline-info me-2" @onclick="DownloadPdf">Download PDF</button>
+    <button class="btn btn-outline-info me-2" @onclick="DownloadCsv">Download CSV</button>
+    <button class="btn btn-outline-info" @onclick="DownloadExcel">Download Excel</button>
+</div>
 
 @if (form == null || response == null)
 {
@@ -68,6 +83,7 @@ else
     private Dictionary<string, object>? response;
     private string? responderName;
     private IJSObjectReference? exportModule;
+    private DeletedFormInfo? deletedInfo;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -82,13 +98,21 @@ else
             }
 
 
-            form = await Http.GetFromJsonAsync<Form>($"api/forms/{FormId}");
+            var resp = await Http.GetAsync($"api/forms/{FormId}");
+            if (resp.StatusCode == System.Net.HttpStatusCode.Gone)
+            {
+                deletedInfo = await resp.Content.ReadFromJsonAsync<DeletedFormInfo>();
+                StateHasChanged();
+                return;
+            }
+            resp.EnsureSuccessStatusCode();
+            form = await resp.Content.ReadFromJsonAsync<Form>();
             response = await Http.GetFromJsonAsync<Dictionary<string, object>>($"api/forms/{FormId}/responses/{ResponseId}");
             if (response.TryGetValue("ResponderName", out var respName))
             {
                 responderName = respName?.ToString();
             }
-            exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "./js/exportHelper.js");
+            exportModule = await JS.InvokeAsync<IJSObjectReference>("import", "/js/exportHelper.js");
             StateHasChanged();
         }
     }
@@ -172,6 +196,54 @@ else
             return val;
         }
         return val;
+    }
+
+    private async Task DownloadCsv()
+    {
+        if (exportModule is not null)
+        {
+            await exportModule.InvokeVoidAsync("downloadTableCsv", "exportTable", $"{form?.Name ?? "response"}.csv");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("downloadTableCsv", "exportTable", $"{form?.Name ?? "response"}.csv");
+        }
+    }
+
+    private async Task DownloadPdf()
+    {
+        if (exportModule is not null)
+        {
+            await exportModule.InvokeVoidAsync("exportTableToPdf", "printArea", $"{form?.Name ?? "response"}.pdf");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("exportTableToPdf", "printArea", $"{form?.Name ?? "response"}.pdf");
+        }
+    }
+
+    private async Task DownloadExcel()
+    {
+        if (exportModule is not null)
+        {
+            await exportModule.InvokeVoidAsync("exportTableToExcel", "exportTable", $"{form?.Name ?? "response"}.xlsx");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("exportTableToExcel", "exportTable", $"{form?.Name ?? "response"}.xlsx");
+        }
+    }
+
+    private async Task PrintResponse()
+    {
+        if (exportModule is not null)
+        {
+            await exportModule.InvokeVoidAsync("printElement", "printArea");
+        }
+        else
+        {
+            await JS.InvokeVoidAsync("printElement", "printArea");
+        }
     }
 
 

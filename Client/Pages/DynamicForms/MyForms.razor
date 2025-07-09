@@ -25,6 +25,7 @@ else
                 <tr>
                     <th>Name</th>
                     <th>Description</th>
+                    <th>Active</th>
                     <th></th>
                 </tr>
             </thead>
@@ -34,6 +35,9 @@ else
                     <tr>
                         <td>@f.Name</td>
                         <td>@f.Description</td>
+                        <td>
+                            <input type="checkbox" class="form-check-input" checked="@f.IsActive" @onchange="e => ToggleActive(f, e)" />
+                        </td>
                         <td>
                             <a class="btn btn-sm btn-primary me-2" href="@($"/forms/{f.Id}")">Open</a>
                             <a class="btn btn-sm btn-secondary me-2" href="@($"/forms/{f.Id}/edit")">Edit</a>
@@ -101,6 +105,13 @@ else
                 Detail = item.Name
             });
         StateHasChanged();
+    }
+
+    private async Task ToggleActive(Form f, ChangeEventArgs e)
+    {
+        bool active = (bool)e.Value;
+        await Http.PutAsJsonAsync($"api/forms/{f.Id}/active", active);
+        f.IsActive = active;
     }
 
     private async Task ShareForm(int id)
