@@ -9,6 +9,7 @@ window.initSortable = (selector, dotnetHelper) => {
             group: 'rows',
             animation: 150,
             handle: '.drag-handle',
+            draggable: '[data-id]',
             onEnd: function (evt) {
                 const fromRow = evt.from.getAttribute('data-row');
                 const toRow = evt.to.getAttribute('data-row');
