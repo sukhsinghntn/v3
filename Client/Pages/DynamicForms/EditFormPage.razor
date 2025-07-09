@@ -91,9 +91,21 @@
                 <div class="d-grid mb-3">
                     <button class="btn btn-primary" @onclick="AddRow">+ Add Row</button>
                 </div>
-                <div class="d-grid">
-                    <button class="btn btn-primary btn-lg" @onclick="HandleSubmit">Update Form</button>
-                </div>
+                @if (isDraft)
+                {
+                    <div class="d-grid mb-2">
+                        <button class="btn btn-secondary" @onclick="SaveDraft">Save Draft</button>
+                    </div>
+                    <div class="d-grid">
+                        <button class="btn btn-primary btn-lg" @onclick="PublishForm">Publish Form</button>
+                    </div>
+                }
+                else
+                {
+                    <div class="d-grid">
+                        <button class="btn btn-primary btn-lg" @onclick="() => SubmitForm(false)">Update Form</button>
+                    </div>
+                }
             </div>
         </div>
     </div>
@@ -114,6 +126,7 @@ else
     private bool requireLogin = true;
     private bool notifyOnResponse = false;
     private string notificationEmail = string.Empty;
+    private bool isDraft = false;
     private UserModel? currentUser;
     private DotNetObjectReference<DynamicFormsApp.Client.Pages.DynamicForms.EditFormPage>? objRef;
 
@@ -138,6 +151,7 @@ else
             requireLogin = form.RequireLogin;
             notifyOnResponse = form.NotifyOnResponse;
             notificationEmail = form.NotificationEmail ?? notificationEmail;
+            isDraft = form.IsDraft;
             rows = BuildDesignerRows(form);
 
             objRef ??= DotNetObjectReference.Create(this);
@@ -213,20 +227,23 @@ else
 
     async Task RemoveField(int row, DesignerField field)
     {
-        bool? confirmed = await DialogService.Confirm(
-            "Deleting this field will create a new version of the form. Continue?",
-            "Delete Field",
-            new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" });
-
-        if (confirmed == true)
+        if (!isDraft)
         {
-            rows[row].Fields.Remove(field);
-            if (rows[row].Fields.Count == 0 && rows.Count > 1)
-            {
-                rows.RemoveAt(row);
-            }
-            await JS.InvokeVoidAsync("initSortable", "#fields-container", objRef!);
+            bool? confirmed = await DialogService.Confirm(
+                "Deleting this field will create a new version of the form. Continue?",
+                "Delete Field",
+                new ConfirmOptions { OkButtonText = "Yes", CancelButtonText = "No" });
+
+            if (confirmed != true)
+                return;
         }
+
+        rows[row].Fields.Remove(field);
+        if (rows[row].Fields.Count == 0 && rows.Count > 1)
+        {
+            rows.RemoveAt(row);
+        }
+        await JS.InvokeVoidAsync("initSortable", "#fields-container", objRef!);
     }
 
     async Task DuplicateField(int row, DesignerField field)
@@ -342,7 +359,7 @@ else
         return result;
     }
 
-    async Task HandleSubmit()
+    async Task SubmitForm(bool draft)
     {
         if (string.IsNullOrWhiteSpace(formName))
         {
@@ -388,6 +405,7 @@ else
             NotifyOnResponse = notifyOnResponse,
             NotificationEmail = string.IsNullOrWhiteSpace(notificationEmail) ? null : notificationEmail,
             IsActive = true,
+            IsDraft = draft,
             Fields = rows.SelectMany((row, rIdx) => row.Fields.Select((f, cIdx) => new
             {
                 f.Key,
@@ -407,11 +425,23 @@ else
         var resp = await Http.PutAsJsonAsync($"api/forms/{FormId}", payload);
         if (resp.IsSuccessStatusCode)
         {
-            var wrapper = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            int newId = wrapper.GetProperty("formId").GetInt32();
-            Navigation.NavigateTo($"/forms/{newId}");
+            if (draft)
+            {
+                await DialogService.Alert("Draft saved!", "Draft Saved");
+                isDraft = true;
+            }
+            else
+            {
+                var wrapper = await resp.Content.ReadFromJsonAsync<JsonElement>();
+                int newId = wrapper.GetProperty("formId").GetInt32();
+                Navigation.NavigateTo($"/forms/{newId}");
+            }
         }
     }
+
+    Task SaveDraft() => SubmitForm(true);
+
+    Task PublishForm() => SubmitForm(false);
 
     public void Dispose()
     {

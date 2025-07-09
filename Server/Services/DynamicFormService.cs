@@ -57,15 +57,29 @@ namespace DynamicFormsApp.Server.Services
 
             if (deletions.Count > 0)
             {
-                // Deleting fields requires a new version with a fresh table
-                existing.IsActive = false;
-                await _db.SaveChangesAsync();
+                if (!existing.IsDraft)
+                {
+                    // Deleting fields requires a new version with a fresh table
+                    existing.IsActive = false;
+                    await _db.SaveChangesAsync();
 
-                var newId = await CreateFormAsync(dto.Name, dto.Description, dto.Fields, user,
-                    dto.RequireLogin, dto.NotifyOnResponse, dto.NotificationEmail, dto.IsActive,
-                    dto.IsDraft, existing.Version + 1, existing.Id);
+                    var newId = await CreateFormAsync(dto.Name, dto.Description, dto.Fields, user,
+                        dto.RequireLogin, dto.NotifyOnResponse, dto.NotificationEmail, dto.IsActive,
+                        dto.IsDraft, existing.Version + 1, existing.Id);
 
-                return newId;
+                    return newId;
+                }
+                else
+                {
+                    var rawName = SanitizeKey(existing.Name);
+                    var tableName = $"Form_{existing.Id}_{rawName}";
+                    foreach (var del in deletions)
+                    {
+                        var sql = $"ALTER TABLE [{tableName}] DROP COLUMN [{del.Key}];";
+                        await _db.Database.ExecuteSqlRawAsync(sql);
+                        _db.FormFields.Remove(del);
+                    }
+                }
             }
 
             // Update in place when no fields are removed

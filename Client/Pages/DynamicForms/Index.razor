@@ -391,7 +391,7 @@ else
     private async Task SaveDraftAndExit()
     {
         await SaveDraftAsync();
-        await JS.InvokeVoidAsync("alert", "Draft saved! You can return later to edit or publish it.");
+        await DialogService.Alert("Draft saved! You can return later to edit or publish it.", "Draft Saved");
         ignoreNavigationPrompt = true;
         Navigation.NavigateTo("/");
     }

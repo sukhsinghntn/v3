@@ -10,9 +10,9 @@ window.initSortable = (selector, dotnetHelper) => {
             animation: 150,
             handle: '.drag-handle',
             draggable: '[data-id]',
-            filter: '.no-drop',
+            filter: '.no-drop, .no-drop *',
             onMove: function (evt) {
-                if (evt.related && evt.related.classList.contains('no-drop')) {
+                if (evt.related && (evt.related.classList.contains('no-drop') || evt.related.closest('.no-drop'))) {
                     return false;
                 }
             },
