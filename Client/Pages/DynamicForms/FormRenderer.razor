@@ -9,18 +9,21 @@
 @inject NavigationManager Navigation
 @inject CookieHelper CookieHelper
 
-<h3>@(form?.Name ?? "Loading…")</h3>
+<h3>@(form?.Name ?? (isLoaded ? string.Empty : "Loading…"))</h3>
 <p class="text-muted">@form?.Description</p>
 @if (!string.IsNullOrEmpty(deletedMessage))
 {
-    <div class="alert alert-warning">@deletedMessage</div>
+    var cls = deletedMessage.Contains("deleted", StringComparison.OrdinalIgnoreCase)
+        ? "alert alert-danger"
+        : "alert alert-warning";
+    <div class="@cls">@deletedMessage</div>
 }
 
-@if (form == null)
+@if (!isLoaded)
 {
     <p><em>Loading form…</em></p>
 }
-else
+else if (form != null)
 {
     <EditForm Model="@responseData">
         @{
@@ -175,6 +178,7 @@ else
     private Form form;
     private Dictionary<string, object> responseData = new();
     private string? deletedMessage;
+    private bool isLoaded;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -192,6 +196,7 @@ else
                 {
                     deletedMessage = "Form not found.";
                 }
+                isLoaded = true;
                 StateHasChanged();
                 return;
             }
@@ -220,6 +225,7 @@ else
                 };
             }
 
+            isLoaded = true;
             StateHasChanged();
         }
     }
