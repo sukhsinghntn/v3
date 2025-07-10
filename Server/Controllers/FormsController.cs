@@ -31,7 +31,7 @@ namespace DynamicFormsApp.Server.Controllers
                 return Unauthorized();
             }
 
-            var newFormId = await _svc.CreateFormAsync(dto.Name, dto.Description, dto.Fields, user, dto.RequireLogin, dto.NotifyOnResponse, dto.NotificationEmail, dto.IsActive, dto.IsDraft);
+            var newFormId = await _svc.CreateFormAsync(dto.Name, dto.Description, dto.Fields, user, dto.RequireLogin, dto.NotifyOnResponse, dto.NotificationEmail, dto.IsActive, dto.IsAvailable, dto.IsDraft);
             return Ok(new { FormId = newFormId });
         }
 
@@ -68,6 +68,16 @@ namespace DynamicFormsApp.Server.Controllers
                     Email = owner?.Email
                 });
             }
+            if (!form.IsAvailable)
+            {
+                var owner = await _userSvc.GetUserData(form.CreatedBy);
+                return StatusCode(410, new
+                {
+                    Message = "This form is no longer available. Please contact the owner.",
+                    Owner = owner?.DisplayName ?? form.CreatedBy,
+                    Email = owner?.Email
+                });
+            }
 
             var rows = await _svc.GetResponsesAsync(id, user);
             return Ok(rows);
@@ -92,6 +102,16 @@ namespace DynamicFormsApp.Server.Controllers
                     Email = owner?.Email
                 });
             }
+            if (!form.IsAvailable)
+            {
+                var owner = await _userSvc.GetUserData(form.CreatedBy);
+                return StatusCode(410, new
+                {
+                    Message = "This form is no longer available. Please contact the owner.",
+                    Owner = owner?.DisplayName ?? form.CreatedBy,
+                    Email = owner?.Email
+                });
+            }
 
             var row = await _svc.GetResponseAsync(id, responseId, user);
             return Ok(row);
@@ -103,12 +123,24 @@ namespace DynamicFormsApp.Server.Controllers
         public async Task<ActionResult<Form>> Get(int id)
         {
             var form = await _svc.GetFormAsync(id);
-            if (!form.IsActive)
+            var requesterIsOwner = Request.Cookies.TryGetValue("userName", out var user) && user == form.CreatedBy;
+
+            if (!form.IsActive && !requesterIsOwner)
             {
                 var owner = await _userSvc.GetUserData(form.CreatedBy);
                 return StatusCode(410, new
                 {
                     Message = "This form has been deleted. Please contact the owner.",
+                    Owner = owner?.DisplayName ?? form.CreatedBy,
+                    Email = owner?.Email
+                });
+            }
+            if (!form.IsAvailable && !requesterIsOwner)
+            {
+                var owner = await _userSvc.GetUserData(form.CreatedBy);
+                return StatusCode(410, new
+                {
+                    Message = "This form is no longer available. Please contact the owner.",
                     Owner = owner?.DisplayName ?? form.CreatedBy,
                     Email = owner?.Email
                 });
@@ -126,6 +158,16 @@ namespace DynamicFormsApp.Server.Controllers
                 return StatusCode(410, new
                 {
                     Message = "This form has been deleted. Please contact the owner.",
+                    Owner = owner?.DisplayName ?? current.CreatedBy,
+                    Email = owner?.Email
+                });
+            }
+            if (!current.IsAvailable)
+            {
+                var owner = await _userSvc.GetUserData(current.CreatedBy);
+                return StatusCode(410, new
+                {
+                    Message = "This form is no longer available. Please contact the owner.",
                     Owner = owner?.DisplayName ?? current.CreatedBy,
                     Email = owner?.Email
                 });
@@ -205,6 +247,30 @@ namespace DynamicFormsApp.Server.Controllers
             return NoContent();
         }
 
+        [HttpPut("{id}/active")]
+        public async Task<IActionResult> SetActive(int id, [FromBody] bool active)
+        {
+            if (!Request.Cookies.TryGetValue("userName", out var user) || string.IsNullOrEmpty(user))
+            {
+                return Unauthorized();
+            }
+
+            await _svc.SetActiveStateAsync(id, user, active);
+            return NoContent();
+        }
+
+        [HttpPut("{id}/available")]
+        public async Task<IActionResult> SetAvailable(int id, [FromBody] bool available)
+        {
+            if (!Request.Cookies.TryGetValue("userName", out var user) || string.IsNullOrEmpty(user))
+            {
+                return Unauthorized();
+            }
+
+            await _svc.SetAvailableStateAsync(id, user, available);
+            return NoContent();
+        }
+
         [HttpPost("{id}/share")]
         public async Task<IActionResult> Share(int id, [FromBody] ShareFormDto dto)
         {
@@ -256,6 +322,16 @@ namespace DynamicFormsApp.Server.Controllers
                     return StatusCode(410, new
                     {
                         Message = "This form has been deleted. Please contact the owner.",
+                        Owner = owner?.DisplayName ?? form.CreatedBy,
+                        Email = owner?.Email
+                    });
+                }
+                if (!form.IsAvailable)
+                {
+                    var owner = await _userSvc.GetUserData(form.CreatedBy);
+                    return StatusCode(410, new
+                    {
+                        Message = "This form is no longer available. Please contact the owner.",
                         Owner = owner?.DisplayName ?? form.CreatedBy,
                         Email = owner?.Email
                     });
