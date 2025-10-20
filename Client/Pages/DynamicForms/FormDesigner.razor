@@ -239,6 +239,7 @@
             NotifyOnResponse = notifyOnResponse,
             NotificationEmail = string.IsNullOrWhiteSpace(notificationEmail) ? null : notificationEmail,
             IsActive = true,
+            IsEnabled = true,
             Fields = fields.Select(f => new
             {
                 Label = f.Label,
